@@ -7,7 +7,9 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "type-check": "turbo run type-check"
+    "type-check": "turbo run type-check",
+    "docker:up": "docker compose -f infrastructure/compose/docker-compose.yml up --build",
+    "docker:down": "docker compose -f infrastructure/compose/docker-compose.yml down"
   },
   "devDependencies": {
     "@skill-mint/prettier-config": "workspace:^",
