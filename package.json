@@ -1,15 +1,18 @@
 {
   "name": "skill-mint",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --filter=./apps/*",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "type-check": "turbo run type-check"
   },
   "devDependencies": {
-    "turbo": "latest",
-    "prettier": "^3.0.0"
+    "@skill-mint/prettier-config": "workspace:^",
+    "prettier": "^3.0.0",
+    "turbo": "latest"
   },
   "engines": {
     "node": ">=18"

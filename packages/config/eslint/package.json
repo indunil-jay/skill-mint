@@ -1,0 +1,43 @@
+{
+  "name": "@skill-mint/eslint-config",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared ESLint configuration for skill-mint monorepo",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./next": {
+      "types": "./dist/next.d.ts",
+      "import": "./dist/next.js",
+      "require": "./dist/next.cjs"
+    },
+    "./nest": {
+      "types": "./dist/nest.d.ts",
+      "import": "./dist/nest.js",
+      "require": "./dist/nest.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "watch": "tsup --watch",
+    "lint": "eslint src/",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.18.0",
+    "typescript-eslint": "^8.20.0"
+  },
+  "devDependencies": {
+    "@skill-mint/typescript-config": "workspace:*",
+    "eslint": "^9.18.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.3"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0"
+  }
+}
