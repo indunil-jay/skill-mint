@@ -1,0 +1,13 @@
+name: Blockchain
+
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  placeholder:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "not implemented"
