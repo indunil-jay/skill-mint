@@ -1,44 +1,49 @@
-# Base stage
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@11.5.2 --activate
 
-# Builder stage
-FROM base AS builder
+# ─── deps stage: install all workspace deps ────────────────────────────────
+FROM base AS deps
 WORKDIR /app
 
-# Copy root configs and package definitions
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY packages/config/eslint/package.json ./packages/config/eslint/
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
+COPY packages/config/eslint/package.json   ./packages/config/eslint/
 COPY packages/config/prettier/package.json ./packages/config/prettier/
 COPY packages/config/typescript/package.json ./packages/config/typescript/
-COPY apps/backend/package.json ./apps/backend/
+COPY apps/backend/package.json             ./apps/backend/
 
-# Install workspace dependencies (using build cache for pnpm store)
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --shamefully-hoist
 
-# Copy the rest of the source code
-COPY . .
-
-# Build the backend app
-RUN pnpm --filter backend build
-
-# Deploy production-only dependencies and built assets
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm --filter backend deploy --prod /prod/backend
-
-# Final production stage
-FROM base AS runner
+# ─── builder stage: compile TypeScript ─────────────────────────────────────
+FROM deps AS builder
 WORKDIR /app
 
-# Copy production dependencies and build artifacts from builder stage
-COPY --from=builder /prod/backend/node_modules ./node_modules
-COPY --from=builder /prod/backend/package.json ./package.json
-COPY --from=builder /prod/backend/dist ./dist
+ENV CI=true
 
-# Set run environments
+COPY apps/backend ./apps/backend
+COPY packages     ./packages
+
+RUN pnpm --filter backend build
+
+# ─── prod-deps stage: production-only deps via pnpm deploy ──────────────────
+FROM deps AS prod-deps
+WORKDIR /app
+
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm --filter backend deploy --prod --legacy /prod/backend
+
+# ─── runner stage: lean final image ─────────────────────────────────────────
+FROM node:22-alpine AS runner
+WORKDIR /app
+
 ENV NODE_ENV=production
 ENV PORT=4000
 EXPOSE 4000
+
+COPY --from=prod-deps /prod/backend/node_modules ./node_modules
+COPY --from=prod-deps /prod/backend/package.json ./package.json
+COPY --from=builder   /app/apps/backend/dist     ./dist
 
 CMD ["node", "dist/main"]

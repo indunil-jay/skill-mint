@@ -1,42 +1,45 @@
-# Base stage
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@11.5.2 --activate
 
-# Builder stage
-FROM base AS builder
+# ─── deps stage: install all workspace deps ────────────────────────────────
+FROM base AS deps
 WORKDIR /app
 
-# Copy root configs and package definitions
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY packages/config/eslint/package.json ./packages/config/eslint/
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
+COPY packages/config/eslint/package.json   ./packages/config/eslint/
 COPY packages/config/prettier/package.json ./packages/config/prettier/
 COPY packages/config/typescript/package.json ./packages/config/typescript/
-COPY apps/web/package.json ./apps/web/
+COPY apps/web/package.json                 ./apps/web/
 
-# Install workspace dependencies (using build cache for pnpm store)
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 
-# Copy the rest of the source code
-COPY . .
+# ─── builder stage: compile Next.js ─────────────────────────────────────────
+FROM deps AS builder
+WORKDIR /app
 
-# Build Next.js application
+ENV CI=true
 ENV NEXT_TELEMETRY_DISABLED=1
+
+COPY apps/web  ./apps/web
+COPY packages  ./packages
+
 RUN pnpm --filter web build
 
-# Production runner stage
-FROM base AS runner
+# ─── runner stage: lean final image (Next.js standalone) ────────────────────
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ENV NEXT_TELEMETRY_DISABLED=1
 EXPOSE 3000
 
-# Copy static assets and next.js standalone bundle
-COPY --from=builder /app/apps/web/public ./apps/web/public
-COPY --from=builder /app/apps/web/.next/standalone ./
-COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder /app/apps/web/.next/standalone    ./
+COPY --from=builder /app/apps/web/.next/static        ./apps/web/.next/static
+COPY --from=builder /app/apps/web/public              ./apps/web/public
 
 CMD ["node", "apps/web/server.js"]

@@ -1,8 +1,9 @@
 services:
+
   db:
     image: postgres:16-alpine
     container_name: skill-mint-db
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgrespassword
@@ -22,7 +23,7 @@ services:
       context: ../../
       dockerfile: infrastructure/docker/backend.Dockerfile
     container_name: skill-mint-backend
-    restart: always
+    restart: unless-stopped
     ports:
       - "4000:4000"
     environment:
@@ -42,7 +43,7 @@ services:
       context: ../../
       dockerfile: infrastructure/docker/web.Dockerfile
     container_name: skill-mint-web
-    restart: always
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:

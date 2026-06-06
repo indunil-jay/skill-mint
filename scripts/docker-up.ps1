@@ -1,1 +1,2 @@
-docker compose -f "$PSScriptRoot\..\infrastructure\compose\docker-compose.yml" up --build $args
+$composeFile = Join-Path $PSScriptRoot "..\infrastructure\compose\docker-compose.yml"
+docker compose -f $composeFile up --build $args
